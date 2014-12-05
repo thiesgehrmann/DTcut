@@ -41,6 +41,21 @@ class DT:
 
   ###############################################################################
 
+  def get_clusters_info(self, C, IDS):
+    """
+    For a given set of clusters, produce a table with the important information from these clusters
+    """
+
+    info = [];
+    for c in C:
+      cluster_node = self.T[c];
+      info.append( ( cluster_node[2], cluster_node[4], [ IDS[leaf] for leaf in cluster_node[3] ] ));
+    #efor
+    return info;
+  #efor
+
+  ###############################################################################
+
   def correct(self, pval, factor):
     """
     A wrapper function for pvalue correction, incase we want to do something more fancy

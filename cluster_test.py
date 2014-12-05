@@ -20,57 +20,20 @@ from scipy.spatial.distance import pdist;
 ###############################################################################
 
 
-def get_data(cuffdiff_combine_file, labels_file):
-  """
-  Just some stuff for me, formatting the data
-  """
+def read_data(ids_file, values_file, labels_files):
 
-  X = Load(cuffdiff_combine_file);
-  P = Read(labels_file, format='tsv2')();
+  IDS = Read(ids_file, format='tsv2').Get(0)();
+  X   = zip(*Read(values_file).Cast('real64')());
+  L   = [];
 
-    # Just the individual conditions, and the slices that represent them (some are double)
-  N = dict([ (n.split('_')[int(n.split('_', 3)[-1])-1],n) for n in X.Names if ('_value_' in n) ])
+  for l_file in labels_files:
+    labelled = Read(l_file, format='tsv2')();
+    L.append([ True if id in labelled else False for id in IDS ]);
+  #efor
 
-    # Get the expression values per test_id
-  X = X.Get(_.test_id, *N.values()) / (('test_id',) + tuple(N.keys()));
-  X = X.Cast(X.Type.getSubType(0), *(['real64']*len(N)))
-
-    # Get rid of the proteins with all-zero expression values
-  X = X[X.Get(tuple(X.Names[1:])).To(_.data, Do=_.Each(lambda x: sum(x))) != 0]
-
-    # Get the IDS
-  IDS = X.test_id();
-
-  X_mat = zip(*X.Without(_.test_id)());
-  L = [ True if prot in P else False for prot in IDS ];
-
-  return IDS, X_mat, L;
+  return IDS, X, L;
 #edef
 
-def read_data(gene_ids, expression_file, labels_files):
-
-  X = Load(expression_file);
-  P = Read(labels_files[0], format='tsv2')();
-    
-    # Just the individual conditions, and the slices that represent them (some are double)
-  N = dict([ (n.split('_')[int(n.split('_', 3)[-1])-1],n) for n in X.Names if ('_value_' in n) ])
-    
-    # Get the expression values per test_id
-  X = X.Get(_.test_id, *N.values()) / (('test_id',) + tuple(N.keys()));
-  X = X.Cast(X.Type.getSubType(0), *(['real64']*len(N)))
-    
-    # Get rid of the proteins with all-zero expression values
-  X = X[X.Get(tuple(X.Names[1:])).To(_.data, Do=_.Each(lambda x: sum(x))) != 0]
-    
-    # Get the IDS
-  IDS = X.test_id();
-
-  X_mat = zip(*X.Without(_.test_id)());
-  L = [ True if prot in P else False for prot in IDS ];
-
-  return IDS, X_mat, L;
-
-#edef
 
 ###############################################################################
 ###############################################################################
@@ -79,38 +42,44 @@ def read_data(gene_ids, expression_file, labels_files):
 def usage(arg0):
 
   print "%s: General purpose dynamic tree cutter based on a statistical test" % arg0;
-  print " Usage: %s <expression_file> <distance_metric> <linkage_method> <stat_test> <output_dir> <label_file_1> [label_file_2] ... [label_file_n]" % arg0;
+  print " Usage: %s <ids_file> <values_file> <distance_metric> <linkage_method> <stat_test> <p-value_threshold> <min_set_size> <output_dir> <label_file_1> [label_file_2] ... [label_file_n]" % arg0;
+  print "";
+  print " Parameters";
+  print "  ids_file:        The list of element IDS for your objects. For example, gene IDS";
+  print "  values_file:     A description of each object, sorted identically to <ids_file>. For example, expression matrix.";
+  print "  distance_metric: The metric used to calculate distances. For example, 'correlation' or 'euclidean'.";
+  print "  linkage_method:  The linkage algorithm to use in clustering. E.g. 'complete'.";
+  print "  stat_test:       The file describing the statistical test. See the example' EnrichmentTest.py'.";
+  print "  p-value thresh:  The p-value threshold to use.";
+  print "  min_set_size:    The minimum size a set must have in order to consider it.";
+  print "  output_dir:      The output directory to put results.";
+  print "  label_file(s):   A file containing a list of genes that have a particular label";
+
 #edef
 
 if __name__ == '__main__':
 
-  cuffdiff_combine = '/data/tmp/thiesgehrmann/rnaseq_schco3/cuffdiff_combine.dat';
-  labels_file      = '/home/nfs/thiesgehrmann/groups/w/phd/tasks/cazyme_predicted/predicted_cazymes.txt';
-  labels_file      = '/home/nfs/thiesgehrmann/groups/w/phd/data/schco3/go_annots/3043.txt';
-  distance_metric  = 'correlation';
-  linkage_method   = 'complete';
-  
-  if len(sys.argv) < 9:
+  if len(sys.argv) < 10:
     usage(sys.argv[0]);
     sys.exit(1);
   #fi
 
-  expression_file = sys.argv[1];
-  distance_metric = sys.argv[2];
-  linkage_method  = sys.argv[3];
-  stat_test_file  = sys.argv[4];
-  pvalue_thresh   = float(sys.argv[5]);
-  min_set_size    = int(sys.argv[6]) if sys.argv[6] != 'None' else None;
-  output_dir      = sys.argv[7];
-  label_files     = sys.argv[8:];
+  ids_file        = sys.argv[1];
+  values_file     = sys.argv[2];
+  distance_metric = sys.argv[3];
+  linkage_method  = sys.argv[4];
+  stat_test_file  = sys.argv[5];
+  pvalue_thresh   = float(sys.argv[6]);
+  min_set_size    = int(sys.argv[7]) if sys.argv[7] != 'None' else None;
+  output_dir      = sys.argv[8];
+  labels_files    = sys.argv[9:];
 
     # Import the statistical test
   TEST = imp.load_source('Test', stat_test_file);
 
     # Get the expression data matrix;
   print "Reading Data";
-  IDS, X, L = get_data(cuffdiff_combine, labels_file);
-  L = [L];
+  IDS, X, L = read_data(ids_file, values_file, labels_files);
 
     # Calculate the distances
   print "Calculating distances";
@@ -126,7 +95,7 @@ if __name__ == '__main__':
   for i, label_set in enumerate(L):
     current_tree = dt.DT(T);
 
-    print "TESTING label set: %s" % label_files[i];
+    print "TESTING label set: %s" % labels_files[i];
 
       # Initialize the statistical test
     stat_test = TEST.Test(current_tree, IDS, X, label_set);
@@ -134,7 +103,7 @@ if __name__ == '__main__':
 
       # Test the tree, getting significant nodes
     S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size);
-    print S;
+    Export(Rep(current_tree.get_clusters_info(S, IDS)), '%s/%d.tsv' % (output_dir, i), names=False);
     
   #efor
 
