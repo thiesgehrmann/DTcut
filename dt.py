@@ -1,5 +1,4 @@
 
-
 def prepare_tree(T):
   """
   The output of the linkage is confusing, and doesn't contain the leaf nodes.
@@ -94,7 +93,6 @@ class DT:
 
     return significant;
   #edef
-      
 
   ###############################################################################
 
@@ -128,9 +126,6 @@ class DT:
 
       pval, children, children_more_significant, visited = self.visit_node(i_node);
       tests_done = tests_done + visited;
-
-      print pval;
-      print self.T[i_node][-1];
 
       if not(children_more_significant) and self.correct(pval, tests_done) < self.p_thresh:
         S.append(i_node);
@@ -191,7 +186,6 @@ class DT:
     #efor
 
     return node_pvalue, children, more_significant_children, 1 - node_visited;
-
   #edef
 
 #eclass

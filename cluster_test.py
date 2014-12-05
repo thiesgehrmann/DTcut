@@ -133,8 +133,9 @@ if __name__ == '__main__':
     stat_func = lambda i_node, subset: stat_test.test(i_node, subset);
 
       # Test the tree, getting significant nodes
-    current_tree.test_tree(stat_func, pvalue_thresh, min_set_size)
+    S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size);
     print S;
+    
   #efor
 
 #fi
