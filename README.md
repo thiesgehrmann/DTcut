@@ -24,6 +24,6 @@ The example can be run with the following command:
 ./cluster_test.py example_data/gene_ids.tsv example_data/expression_matrix.tsv  correlation complete EnrichmentTest.py 0.05 20 ./ example_data/GO\:0008152.tsv
 ```
 
-It produces output like:
+It produces output like that seen in file [/example_data/example_output.tsv](https://github.com/thiesgehrmann/DT-cut/blob/master/example_data/example_output.tsv).
 
 
