@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
       # Test the tree, getting significant nodes
     S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size);
-    Export(Rep(current_tree.get_clusters_info(S, IDS)), '%s/%d.tsv' % (output_dir, i), names=False);
+    Export(Rep(current_tree.get_clusters_info(S, IDS)) / ('height', 'p_value', 'members'), '%s/%d.tsv' % (output_dir, i));
     
   #efor
 
