@@ -6,15 +6,17 @@ class Test:
   IDS    = None;
   X      = None;
   labels = None;
+  test_count = None;
 
   def __init__(self, T, IDS, X, labels):
     self.T      = T;
     self.IDS    = IDS;
     self.X      = X;
     self.labels = labels;
+    self.test_count = 0;
   #edef
 
-  def test(self, i_node, subset):
+  def test(self, i_node, sub_set):
     """
     Do a simple enrichment using the Chi^2 test.
     """
@@ -30,7 +32,10 @@ class Test:
     a += 1; b += 1; c += 1; d += 1;
     
     chi2, pvalue, dof, expected = chi2_contingency([[a,b],[c,d]]);
-    
+
+    self.test_count += 1;
+    print "total tests: %d" % self.test_count;    
+
     return pvalue;
   #edef
 
