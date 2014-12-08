@@ -1,29 +1,15 @@
 from scipy.stats import chi2_contingency; 
+from dtcut import DTCUT_test;
 
-class Test:
+class Test(DTCUT_test):
 
-  T      = None;
-  IDS    = None;
-  X      = None;
-  labels = None;
-
-  #############################################################################
-
-  def __init__(self, T, IDS, X, labels):
-    self.T      = T;
-    self.IDS    = IDS;
-    self.X      = X;
-    self.labels = labels;
-  #edef
-
-  #############################################################################
-
-  def test(self, i_node, sub_set):
+  def test(self, i_node):
     """
     Do a simple enrichment using the Chi^2 test.
     """
     
-    subset_labels = [ self.labels[sample] for sample in sub_set ];
+    subset        = self.T.T[i_node][3];
+    subset_labels = [ self.labels[sample] for sample in subset ];
     
     a = sum(self.labels);
     b = sum(subset_labels);

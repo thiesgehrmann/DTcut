@@ -1,7 +1,7 @@
 #!/bin/env python
 
   # This package stuff
-import dt as dt;
+import dtcut as dtcut;
 
   # Standard python
 import imp;
@@ -90,16 +90,16 @@ if __name__ == '__main__':
   D = fc.linkage(Y, linkage_method, distance_metric);
 
     # Prepare the tree
-  T = dt.prepare_tree(D);
+  T = dtcut.prepare_tree(D);
 
   for i, label_set in enumerate(L):
-    current_tree = dt.DT(T);
+    current_tree = dtcut.DTCUT(T);
 
     print "TESTING label set: %s" % labels_files[i];
 
       # Initialize the statistical test
     stat_test = TEST.Test(current_tree, IDS, X, label_set);
-    stat_func = lambda i_node, subset: stat_test.test(i_node, subset);
+    stat_func = lambda i_node: stat_test.test(i_node);
 
       # Test the tree, getting significant nodes
     S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size);
