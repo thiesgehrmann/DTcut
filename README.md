@@ -1,9 +1,9 @@
 DT-cut
 ======
 
-Dynamic Test Cut: A general purpose tool to dynamically cut a tree based on a statistical test at each node.
+Dynamic Test Cut: A general purpose tool to dynamically cut a tree based on a statistical test with dynamic testing correction at each node.
 
-A general purpose implementation of the dynamic tree cutting algorithm in [Proteny](https://github.com/thiesgehrmann/proteny#proteny).
+It is, in essence, a general purpose implementation of the dynamic tree cutting algorithm in [Proteny](https://github.com/thiesgehrmann/proteny#proteny).
 
 ![An example output from DT-cut](https://raw.githubusercontent.com/thiesgehrmann/DTcut/master/example_data/example_output/GO:0008152.tsv.dtcut.png)
 
