@@ -22,7 +22,7 @@ If you want to use the provided execution wrapper 'cluster_test.py', then you mu
 
 Example data in /example_data is prepared from:
 
-* http://genome-www.stanford.edu/yeast_stress/data/rawdata/complete_dataset.txt
+* http://genome-www.stanford.edu/yeast_stress/data/rawdata/complete_dataset.txt [Gasch et al. (2000) Mol. Biol. Cell. 11(12) 4241-4257](http://genome-www.stanford.edu/yeast_stress/gasch.pdf)
 * http://downloads.yeastgenome.org/curation/literature/gene_association.sgd.gz
 
 The example can be run with the following command:
