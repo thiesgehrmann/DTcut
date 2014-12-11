@@ -30,5 +30,5 @@ The example can be run with the following command:
 ./cluster_test.py example_data/gene_ids.tsv example_data/expression_matrix.tsv correlation complete EnrichmentTest.py 0.05 20 ./ True example_data/GO\:0008152.tsv
 ```
 
-It produces output like that seen in file [/example_data/example_output/readme/GO:0008152.tsv.dtcut.tsv](https://raw.githubusercontent.com/thiesgehrmann/DTcut/master/example_data/example_output/GO:0008152.tsv.dtcut.tsv).
+It produces output like that seen in file [/example_data/example_output/GO:0008152.tsv.dtcut.tsv](https://raw.githubusercontent.com/https://github.com/thiesgehrmann/DTcut/blob/master/example_data/example_output/GO:0008152.tsv.dtcut.tsv).
 
