@@ -1,3 +1,5 @@
+import numpy as np;
+
 
 def prepare_tree(T):
   """
@@ -93,18 +95,41 @@ class DTCUT:
 
   ###############################################################################
 
-  def get_clusters_info(self, C, IDS):
+  def get_clusters(self, S):
     """
-    For a given set of clusters, produce a table with the important information from these clusters
+    Get a list of length equal to the number of leaves.
+    Each element describes the cluster number the leaf is in.
     """
 
-    info = [];
-    for c in C:
-      cluster_node = self.T[c];
-      info.append( ( cluster_node[2], cluster_node[4], [ IDS[leaf] for leaf in cluster_node[3] ] ));
+    C = np.zeros(( (len(self.T)+1)/2, ), dtype=int) - 1;
+
+    for (i, i_node) in enumerate(S):
+      cluster_node = self.T[i_node];
+      C[list(cluster_node[3])] = i + 1;
     #efor
-    return info;
-  #efor
+
+    return C;
+  #edef
+
+  ###############################################################################
+
+  def get_clusters_info(self, S, IDS):
+    """
+    Return a list of lists describing, for each significant node:
+    * The p-value of the node,
+    * The height that node exists at,
+    * The IDS of the leaves at that node
+    """
+
+    I = [];
+    
+    for (i, i_node) in enumerate(S):
+      cluster_node = self.T[i_node];
+      I.append( ( cluster_node[2], cluster_node[4], [ IDS[leaf] for leaf in cluster_node[3] ] ) );
+    #efor
+    
+    return I;
+  #edef
 
   ###############################################################################
 
