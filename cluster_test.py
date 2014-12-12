@@ -123,6 +123,7 @@ if __name__ == '__main__':
     if output_figs == True:
       cf.draw_clusters(X, D, clusters, info, '%s.dtcut.png' % (output_prefix));
     #fi
+    
   #efor
 
 #fi

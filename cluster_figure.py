@@ -83,9 +83,9 @@ def draw_clusters(X, D, clusters, info, filename):
 
     # Knowing the number of clusters, design the figure size
   dendrogram_rows = 3; # The dendrogram needs more space
-  figdim_x        = 2; # Two graphs per line
+  figdim_x        = 4; # Two graphs per line
   figdim_y        = int(np.ceil(float(nclusters)/figdim_x)) + dendrogram_rows;
-  fig             = plt.figure(figsize=(30, 3.0*figdim_y));
+  fig             = plt.figure(figsize=(16*figdim_x, 3.0*figdim_y));
 
    # Make sure that the data is in numpy format.
   X = np.matrix(X);
@@ -106,7 +106,7 @@ def draw_clusters(X, D, clusters, info, filename):
       # Get the additional information at this plot
     height, pvalue, leaves = info[cluster_k-1]; 
 
-      # Find the genes in this cluster
+      # Find the objects in this cluster
     c_mem   = (clusters == cluster_k);
       # And select only these profiles
     ty = X[c_mem,:];
@@ -117,7 +117,7 @@ def draw_clusters(X, D, clusters, info, filename):
       # Then plot the average on top of it with the color used in the dendrogram
     plt.plot(tx.T, ty.mean(0).T, used_colors[cluster_k-1], linewidth=1);
     plt.xlim((0, ty.shape[1]));
-    plt.title('Cluster %d (%d genes) (pvalue: %f) (height: %f)' % (cluster_k, ty.shape[0], pvalue, height), color=used_colors[cluster_k-1]);
+    plt.title('Cluster %d (%d objects) (pvalue: %f) (height: %f)' % (cluster_k, ty.shape[0], pvalue, height), color=used_colors[cluster_k-1]);
   #efor
 
   plt.savefig(filename, dpi=200);
