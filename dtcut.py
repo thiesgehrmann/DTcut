@@ -6,11 +6,11 @@ def prepare_tree(T):
   """
   The output of the linkage is confusing, and doesn't contain the leaf nodes.
   We add them here, and also do some pre-processing so that it is easy to keep
-  track of the leaf nodes that descend from each internal node (an optimization
+  track of the leaf nodes that descend from each internal node (an optimization).
   """
     
     # The prepared tree
-    # Nodes have values (child_left_id, child_right_id, height, node_leaves, p_value)
+    # Nodes have values (child_left_id, child_right_id, height, node_leaves, p_value, visited)
   P = [ [None, None, 0, set([i]), None, False] for i in xrange(len(T) + 1) ];
   
   for t in T:
@@ -49,26 +49,37 @@ class DTCUT_test:
   In one's own testing class, one only has to define the statistical test.
   Therefore, the structure of your test class code should be:
 
-  from dtcut import DTCUT_test;
-  class my_test(DTCUT_test):
-    def test(self, i_node):
-      p_value = # The magic statistical testing code
-      return p_value;
+    from dtcut import DTCUT_test;
+    class my_test(DTCUT_test):
+      def test(self, i_node):
+        p_value = # The magic statistical testing code
+        return p_value;
   """
 
   T      = None;
-  IDS    = None;
-  X      = None;
-  labels = None;
 
   #############################################################################
 
-  def __init__(self, T, IDS, X, labels):
-    self.T      = T;
-    self.IDS    = IDS;
-    self.X      = X;
-    self.labels = labels;
+  def __init__(self, T):
+    self.T = T;
+
+    self.prepare_data();
   #edef
+
+  def prepare_data(self):
+    # Make this function format the labels or data into whatever you need.
+
+    return None;
+  #edef
+
+  #############################################################################
+
+  def correct(self, pval, factor):
+    """
+    A wrapper function for pvalue correction, incase we want to do something more fancy
+    """
+    
+    return pval * factor;
 
   #############################################################################
 
@@ -77,6 +88,28 @@ class DTCUT_test:
     return 1.0;
   #edef
 
+  #############################################################################
+
+  def descend_rule(self, i_node, p_thresh, factor, min_set_size):
+    
+    children = [ self.T.get_tree_node_left_child_id(i_node), self.T.get_tree_node_right_child_id(i_node) ];
+    p_value  = self.T.get_tree_node_p_value(i_node);
+    
+    more_significant_children = [];
+    for child_id in children:
+      if (child_id is not None) and (self.T.get_tree_node_p_value(child_id) < p_value) and ( len(self.T.get_tree_node_leaves(child_id)) >= min_set_size):
+        more_significant_children.append(child_id);
+      #fi
+    #edef
+    
+    if not(more_significant_children) and self.correct(p_value, factor) < p_thresh:
+      return None;
+    else:
+      return [ child for child in children if ( (child is not None) and (len(self.T.get_tree_node_leaves(child)) >= min_set_size) ) ];
+    #fi
+  #edef
+
+
 #eclass
 
 ###############################################################################
@@ -84,14 +117,21 @@ class DTCUT_test:
 class DTCUT:
 
   T            = None;
-  stat_func    = None;
+  X            = None;
+  IDS          = None;
+  L            = None;
+  stat         = None;
   p_thresh     = None;
   min_set_size = None;
+  max_set_size = None;
 
   ###############################################################################
 
-  def __init__(self, T):
-    self.T = copy.deepcopy(T);
+  def __init__(self, T, X, IDS, L):
+    self.T   = copy.deepcopy(T);
+    self.X   = np.matrix(X);
+    self.IDS = np.array(IDS);
+    self.L   = np.array(L);
   #edef
 
   ###############################################################################
@@ -114,7 +154,7 @@ class DTCUT:
 
   ###############################################################################
 
-  def get_clusters_info(self, S, IDS):
+  def get_clusters_info(self, S):
     """
     Return a list of lists describing, for each significant node:
     * The p-value of the node,
@@ -126,7 +166,7 @@ class DTCUT:
     
     for (i, i_node) in enumerate(S):
       cluster_node = self.T[i_node];
-      I.append( ( cluster_node[2], cluster_node[4], [ IDS[leaf] for leaf in cluster_node[3] ] ) );
+      I.append( ( cluster_node[2], cluster_node[4], [ self.IDS[leaf] for leaf in cluster_node[3] ] ) );
     #efor
     
     return I;
@@ -144,7 +184,7 @@ class DTCUT:
 
   ###############################################################################
 
-  def test_tree(self, stat_func, p_thresh, min_set_size):
+  def test_tree(self, stat, p_thresh, min_set_size, max_set_size=sys.maxint):
     """
     Loop through the tree and test each node in a BFS manner.
 
@@ -155,11 +195,18 @@ class DTCUT:
 
     This is the dynamic correction algorithm of:
     "Proteny: Discovering and visualizing statistically significant syntenic clusters at the proteome level"
+
+    Input:
+     * stat:         The statistical test class
+     * p_thresh:     The p-value threshold
+     * min_set_size: The smallest size a cluster may be
+     * max_set_size: The largest size a cluster may be
     """
 
-    self.stat_func    = stat_func;
+    self.stat         = stat;
     self.p_thresh     = p_thresh;
     self.min_set_size = min_set_size;
+    self.max_set_size = max_set_size;
 
     correction_factor = 0;
     testing           = [ -1 ];
@@ -217,14 +264,15 @@ class DTCUT:
         # Traverse the queue
       i_node = Q.pop(0);
 
-      pval, children, children_more_significant, visited = self.visit_node(i_node);
+      visited = self.visit_node(i_node);
       tests_done = tests_done + visited;
 
-      if not(children_more_significant) and self.correct(pval, tests_done) < self.p_thresh:
+      next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size);
+      if next_tests is None:
         S.append(i_node);
-        print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, pval, tests_done);
+        print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), tests_done);
       else:
-        Q.extend(children);
+        Q.extend(next_tests);
       #fi
     #ewhile
 
@@ -239,47 +287,141 @@ class DTCUT:
     This means, check its p-value, and the p-value of its children.
     It returns
      * The p-value of the node
-     * the list of children to test, 
-     * Whether it's children are more significant
      * Whether this node was first time we visited this node
     """
 
     more_significant_children = False;
-    children                  = [];
+    nodes_visited = 0;
 
-    child_left_id, child_right_id, node_height, node_leaves, node_pvalue, node_visited = self.T[i_node];
+    child_left_id, child_right_id, node_height, node_leaves, node_pvalue, node_visited = self.get_tree_node(i_node);
 
       # Do not evaluate nodes smaller than a certain number of leaves
-    if len(node_leaves) < self.min_set_size:
-      return 1.0, [], False, False;
+    if len(node_leaves) < self.min_set_size or len(node_leaves) > self.max_set_size:
+      self.set_tree_node_visited(i_node, False);
+      self.set_tree_node_p_value(i_node, 1.0);
+      return 0;
     #fi
 
       # Get the p-value of the node
     if node_visited == False:
-      node_pvalue        = self.stat_func(i_node);
-      self.T[i_node][-1] = True;
-      self.T[i_node][-2] = node_pvalue;
+      node_pvalue = self.stat.test(i_node);
+
+      self.set_tree_node_visited(i_node, True);
+      self.set_tree_node_p_value(i_node, node_pvalue);
+      nodes_visited = nodes_visited + 1;
     #fi
 
-      # Get p-value of the LEFT child node
+      # Get p-value of the LEFT and RIGHT child node
     child_nodes = [ child_left_id, child_right_id ];
     for child_id in child_nodes:
       if child_id != None:
-        children.append(child_id);
-        child_child_left_id, child_child_right_id, child_height, child_node_leaves, child_node_pvalue, child_node_visited = self.T[child_id];
-        if child_node_pvalue == None:
-          child_node_pvalue = self.stat_func(child_id);
-          self.T[child_id][-1] = child_node_visited;
-          self.T[child_id][-2] = child_node_pvalue;
+        if self.get_tree_node_p_value(child_id) == None:
+          child_node_pvalue = self.stat.test(child_id);
+          self.set_tree_node_visited(child_id, True);
+          self.set_tree_node_p_value(child_id, child_node_pvalue);
+          nodes_visited = nodes_visited + 1;
         #fi
-        if node_pvalue > child_node_pvalue and len(child_node_leaves) >= self.min_set_size:
-          more_significant_children = True;
-        #fi
+        #if node_pvalue > child_node_pvalue and len(child_node_leaves) >= self.min_set_size:
+        #  more_significant_children = True;
+        ##fi
       #fi
     #efor
 
-    return node_pvalue, children, more_significant_children, 1 - node_visited;
+    return nodes_visited;
   #edef
+
+  #############################################################################
+
+  def get_tree_node(self, i_node):
+    return self.T[i_node];
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_left_child_id(self, i_node):
+    return self.get_tree_node(i_node)[0];
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_right_child_id(self, i_node):
+    return self.get_tree_node(i_node)[1];
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_height(self, i_node):
+    return self.get_tree_node(i_node)[2];
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_leaves(self, i_node):
+    return self.get_tree_node(i_node)[3];
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_p_value(self, i_node):
+    return self.get_tree_node(i_node)[4];
+  #edef
+
+  #############################################################################
+
+  def set_tree_node_p_value(self, i_node, pvalue):
+    self.T[i_node][4] = pvalue;
+  #edef
+
+  #############################################################################
+
+  def get_tree_node_visited(self, i_node):
+    return self.get_tree_node(i_node)[5];
+  #edef
+
+  #############################################################################
+
+  def set_tree_node_visited(self, i_node, visited):
+    self.T[i_node][5] = visited;
+  #edef
+
+  #############################################################################
+
+  def get_data_values(self, object_ids):
+    if object_ids is None:
+      return self.X;
+    else:
+      return self.X[object_ids];
+    #fi
+  #edef
+
+  #############################################################################
+
+  def set_data_values(self, object_ids, data):
+    if object_ids is None:
+      self.X = data;
+    else:
+      self.X[object_ids] = data;
+    #fi
+  #edef
+
+  #############################################################################
+
+  def get_labels(self, object_ids):
+    if object_ids is None:
+      return self.L;
+    else:
+      return self.L[object_ids];
+    #fi
+  #edef
+
+  #############################################################################
+
+  def set_labels(self, object_ids, labels):
+    if object_ids is None:
+      self.L = labels;
+    else:
+      self.L[object_ids] = labels;
+    #fi
 
 #eclass
 
