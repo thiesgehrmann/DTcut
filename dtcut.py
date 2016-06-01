@@ -92,8 +92,14 @@ class DTCUT_test:
 
   def descend_rule(self, i_node, p_thresh, factor, min_set_size, max_set_size):
     
-    children = [ self.T.get_tree_node_left_child_id(i_node), self.T.get_tree_node_right_child_id(i_node) ];
-    p_value  = self.T.get_tree_node_p_value(i_node);
+    children       = [ self.T.get_tree_node_left_child_id(i_node), self.T.get_tree_node_right_child_id(i_node) ];
+    valid_children = [ child for child in children if ( (child is not None) and (len(self.T.get_tree_node_leaves(child)) >= min_set_size) ) ]
+    p_value        = self.T.get_tree_node_p_value(i_node);
+    n_leaves       = len(self.T.get_tree_node_leaves(i_node))
+
+    if n_leaves > max_set_size:
+      return valid_children;
+    #fi
     
     more_significant_children = [];
     for child_id in children:
@@ -105,7 +111,7 @@ class DTCUT_test:
     if not(more_significant_children) and self.correct(p_value, factor) < p_thresh:
       return None;
     else:
-      return [ child for child in children if ( (child is not None) and (len(self.T.get_tree_node_leaves(child)) >= min_set_size) ) ];
+      return valid_children;
     #fi
   #edef
 
