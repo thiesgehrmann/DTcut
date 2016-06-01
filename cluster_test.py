@@ -104,20 +104,20 @@ if __name__ == '__main__':
   T = dtcut.prepare_tree(D);
 
   for i, label_set in enumerate(L):
-    current_tree = dtcut.DTCUT(T);
+    current_tree = dtcut.DTCUT(T, X, IDS, label_set);
 
     print "TESTING label set: %s" % labels_files[i];
 
       # Initialize the statistical test
-    stat_test = TEST.Test(current_tree, IDS, X, label_set);
+    stat_test = TEST.Test(current_tree);
     stat_func = lambda i_node: stat_test.test(i_node);
 
       # Test the tree, getting significant nodes
-    S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size, max_set_size);
+    S = current_tree.test_tree(stat_test, pvalue_thresh, min_set_size, max_set_size);
 
       # Get information about these significant nodes
     clusters = current_tree.get_clusters(S);
-    info     = current_tree.get_clusters_info(S, IDS);
+    info     = current_tree.get_clusters_info(S);
 
       # Export the data
     output_prefix = '%s/%s' % (output_dir, labels_files[i].split('/')[-1]);

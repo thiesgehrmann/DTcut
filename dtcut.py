@@ -269,7 +269,6 @@ class DTCUT:
 
       next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size, self.max_set_size);
       if next_tests is None:
-        if 
         S.append(i_node);
         print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), tests_done);
       else:

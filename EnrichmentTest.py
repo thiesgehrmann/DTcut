@@ -8,13 +8,13 @@ class Test(DTCUT_test):
     Do a simple enrichment using the Chi^2 test.
     """
     
-    subset        = self.get_tree_node_leaves(i_node)
-    subset_labels = [ self.labels[sample] for sample in subset ];
+    subset        = self.T.get_tree_node_leaves(i_node)
+    subset_labels = [ self.T.L[sample] for sample in subset ];
     
-    a = sum(self.labels);
+    a = sum(self.T.L);
     b = sum(subset_labels);
     
-    c = len(self.labels)   - a;
+    c = len(self.T.L) - a;
     d = len(subset_labels) - b;
     
     a += 1; b += 1; c += 1; d += 1;
