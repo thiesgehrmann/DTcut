@@ -63,7 +63,9 @@ class DTCUT_test:
 
   def __init__(self, T):
     self.T = T;
+    print "Init"
     self.prepare_data();
+    print "Should have done prepare_data already"
   #edef
 
   def prepare_data(self):
@@ -98,6 +100,12 @@ class DTCUT_test:
     n_leaves       = len(self.T.get_tree_node_leaves(i_node))
 
     if n_leaves > max_set_size:
+      print "parent too big, return children"
+      return valid_children;
+    #fi
+
+    if self.correct(p_value, factor) > p_thresh:
+      print "Parent not sig. return children"
       return valid_children;
     #fi
     
@@ -109,8 +117,10 @@ class DTCUT_test:
     #edef
     
     if not(more_significant_children) and self.correct(p_value, factor) < p_thresh:
+      print "Parent is significant, and there are no more sig children"
       return None;
     else:
+      print "Children are more significant than parent"
       return valid_children;
     #fi
   #edef
@@ -273,6 +283,8 @@ class DTCUT:
       visited = self.visit_node(i_node);
       tests_done = tests_done + visited;
 
+
+        # 
       next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size, self.max_set_size);
       if next_tests is None:
         S.append(i_node);
@@ -332,6 +344,10 @@ class DTCUT:
         ##fi
       #fi
     #efor
+
+    print "===\np-value of parent (%d) = %f\np-value of left (%d) = %f\np-value of right (%d) = %f\n\n" % (i_node, self.set_tree_node_p_value(i_node), 
+                                                                                                           child_left_id, self.set_tree_node_p_value(child_left_id),
+                                                                                                           child_right_id, self.set_tree_node_p_value(child_right_id))
 
     return nodes_visited;
   #edef
