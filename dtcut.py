@@ -1,5 +1,6 @@
 import numpy as np;
 import copy;
+import sys;
 
 
 def prepare_tree(T):
@@ -62,7 +63,6 @@ class DTCUT_test:
 
   def __init__(self, T):
     self.T = T;
-
     self.prepare_data();
   #edef
 
@@ -90,7 +90,7 @@ class DTCUT_test:
 
   #############################################################################
 
-  def descend_rule(self, i_node, p_thresh, factor, min_set_size):
+  def descend_rule(self, i_node, p_thresh, factor, min_set_size, max_set_size):
     
     children = [ self.T.get_tree_node_left_child_id(i_node), self.T.get_tree_node_right_child_id(i_node) ];
     p_value  = self.T.get_tree_node_p_value(i_node);
@@ -267,8 +267,9 @@ class DTCUT:
       visited = self.visit_node(i_node);
       tests_done = tests_done + visited;
 
-      next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size);
+      next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size, self.max_set_size);
       if next_tests is None:
+        if 
         S.append(i_node);
         print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), tests_done);
       else:

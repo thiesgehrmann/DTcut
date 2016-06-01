@@ -58,7 +58,8 @@ def usage(arg0):
   print "  linkage_method:  The linkage algorithm to use in clustering. E.g. 'complete'.";
   print "  stat_test:       The file describing the statistical test. See the example' EnrichmentTest.py'.";
   print "  p-value thresh:  The p-value threshold to use.";
-  print "  min_set_size:    The minimum size a set must have in order to consider it.";
+  print "  min_set_size:    The minimum size a set must have in order to consider it. Set to 'None' to ignore";
+  print "  max_set_size:    The maximum size a set must have in order to consider it. Set to 'None' to ignore";
   print "  output_dir:      The output directory to put results.";
   print "  output_figs:     Output a figure describing the expression of the genes in each cluster. (True or False)";
   print "  label_file(s):   A file containing a list of genes that have a particular label";
@@ -78,10 +79,11 @@ if __name__ == '__main__':
   linkage_method  = sys.argv[4];
   stat_test_file  = sys.argv[5];
   pvalue_thresh   = float(sys.argv[6]);
-  min_set_size    = int(sys.argv[7]) if sys.argv[7] != 'None' else None;
-  output_dir      = sys.argv[8];
-  output_figs     = True if sys.argv[9] == 'True' else False;
-  labels_files    = sys.argv[10:];
+  min_set_size    = int(sys.argv[7]) if sys.argv[7] != 'None' else 0;
+  max_set_size    = int(sys.argv[8]) if sys.argv[8] != 'None' else sys.maxint;
+  output_dir      = sys.argv[9];
+  output_figs     = True if sys.argv[10] == 'True' else False;
+  labels_files    = sys.argv[11:];
 
     # Import the statistical test
   TEST = imp.load_source('Test', stat_test_file);
@@ -111,7 +113,7 @@ if __name__ == '__main__':
     stat_func = lambda i_node: stat_test.test(i_node);
 
       # Test the tree, getting significant nodes
-    S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size);
+    S = current_tree.test_tree(stat_func, pvalue_thresh, min_set_size, max_set_size);
 
       # Get information about these significant nodes
     clusters = current_tree.get_clusters(S);
