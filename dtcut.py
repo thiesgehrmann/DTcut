@@ -57,7 +57,11 @@ class DTCUT_test:
         return p_value;
   """
 
-  T      = None;
+    # Tree
+  T =  None;
+
+    # Should we re-run the statistical test when the node is re-visited?
+  recompute = False;
 
   #############################################################################
 
@@ -321,12 +325,12 @@ class DTCUT:
     #fi
 
       # Get the p-value of the node
-    if node_visited == False:
+    if node_visited == False or self.stat.recompute:
       node_pvalue = self.stat.test(i_node);
 
       self.set_tree_node_visited(i_node, True);
       self.set_tree_node_p_value(i_node, node_pvalue);
-      nodes_visited = nodes_visited + 1;
+      nodes_visited = nodes_visited + (1 - int(node_visited));
     #fi
 
       # Get p-value of the LEFT and RIGHT child node
@@ -345,9 +349,9 @@ class DTCUT:
       #fi
     #efor
 
-    print "===\np-value of parent (%d) = %f\np-value of left (%d) = %f\np-value of right (%d) = %f\n\n" % (i_node, self.set_tree_node_p_value(i_node), 
-                                                                                                           child_left_id, self.set_tree_node_p_value(child_left_id),
-                                                                                                           child_right_id, self.set_tree_node_p_value(child_right_id))
+    print "===\np-value of parent (%d) = %f\np-value of left (%d) = %f\np-value of right (%d) = %f\n\n" % (i_node,         self.get_tree_node_p_value(i_node), 
+                                                                                                           child_left_id,  self.get_tree_node_p_value(child_left_id),
+                                                                                                           child_right_id, self.get_tree_node_p_value(child_right_id))
 
     return nodes_visited;
   #edef

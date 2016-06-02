@@ -122,6 +122,10 @@ if __name__ == '__main__':
       # Export the data
     output_prefix = '%s/%s' % (output_dir, labels_files[i].split('/')[-1]);
     Export(Rep(info) / ('height', 'p_value', 'members'), '%s.dtcut.tsv' % (output_prefix));
+    if len(info) > 0:
+      C_info = Rep([ (i, h, p, m) for (i, (h, p, members)) in enumerate(info) for m in members ]) / ('cluster_id', 'height', 'qvalue', 'member_id')
+      Export(C_info, '%s_flat.dtcut.tsv' % output_prefix);
+    #fi
     if output_figs == True:
       cf.draw_clusters(X, D, clusters, info, '%s.dtcut.png' % (output_prefix));
     #fi
