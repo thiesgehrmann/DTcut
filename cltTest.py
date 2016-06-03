@@ -4,10 +4,11 @@ import numpy as np;
 
 class Test(DTCUT_test):
 
-  recompute    = True;
+  recompute    = False;
   norm_dist    = None
   clt_thresh   = 10;
   permutations = []
+  tests_done   = 0;
 
   #############################################################################
 
@@ -20,21 +21,26 @@ class Test(DTCUT_test):
 
   def test(self, i_node, **kwargs):
 
-    if len(self.T.get_tree_node_leaves(i_node)) >= 10:
-      return self.T.get_tree_node_p_value(i_node) if self.T.get_tree_node_visited(i_node) else self.cltTest(i_node);
-    else:
-      return self.permutationTest(i_node, kwargs['factor']);
+    print "entering test"
+    #if len(self.T.get_tree_node_leaves(i_node)) >= 10:
+    pval = self.T.get_tree_node_p_value(i_node) if self.T.get_tree_node_visited(i_node) else self.cltTest(i_node);
+    #else:
+      #pval = self.permutationTest(i_node, kwargs['factor']);
     #fi
-
+    print "leaving test"
+    self.tests_done = self.tests_done + 1 - int(self.T.get_tree_node_visited(i_node));
+    return pval
   #edef
 
   #############################################################################
 
   def permutationTest(self, i_node, factor):
 
+    print "entering permutationTest"
+
     # First, determine how many permutations we need to get significant results
     alpha = self.p_thresh;
-    nperms_to_sig = max(1000, ((factor+1) / alpha) * 1.1);
+    nperms_to_sig = max(1000, int(((factor+1) / alpha) * 1.1));
 
     # Check how many we have already done
     if self.permutations[i_node] == None:
@@ -43,30 +49,25 @@ class Test(DTCUT_test):
       nperms, perms = self.permutations[i_node];
     #fi
 
+    print "performing %d permutations" % (nperms_to_sig-nperms);
+
     # And perform the necessary number of permutations to get it
     cluster_size = len(self.T.get_tree_node_leaves(i_node));
-    new_perms    = np.concatenate([perms, np.array([self.performPermutation(cluster_size) for x in xrange(nperms_to_sig-nperms)])]);
+    new_perms    = np.concatenate([perms, np.array([np.sum(np.random.choice(self.T.L, cluster_size, replace=False)) for x in xrange(nperms_to_sig-nperms)])]);
 
     p_value = np.sum(new_perms > self.score(i_node)) / float(nperms_to_sig)
 
-    self.permutations[i_node] = (nperms_to_sig, sorted(new_perms, descend=True)[0:int(self.p_thresh*nperms_to_sig)]);
+    self.permutations[i_node] = (nperms_to_sig, sorted(new_perms, reverse=True)[0:int(self.p_thresh*nperms_to_sig)]);
 
+    print "leaving permutationTest"
     return p_value
 
   #edef
 
   #############################################################################
 
-  def performPermutation(self, n):
-    return np.sum(np.random.sample(self.T.L, n));
-  #edef
-
-  #############################################################################
-
   def score(self, i_node):
     leaves  = self.T.get_tree_node_leaves(i_node);
-    nleaves = len(leaves);
-
     return np.sum(self.T.L[np.array(list(leaves))]);
   #edef
 
@@ -78,6 +79,8 @@ class Test(DTCUT_test):
 
     nleaves       = len(self.T.get_tree_node_leaves(i_node));
     cluster_score = self.score(i_node);
+
+    print "cluster_score (%d, %d): %f" % (i_node, nleaves, cluster_score)
 
     clt_mean = nleaves*self.norm_dist[0];
     clt_std  = nleaves*self.norm_dist[1];

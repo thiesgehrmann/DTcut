@@ -61,15 +61,17 @@ class DTCUT_test:
   T =  None;
 
     # Should we re-run the statistical test when the node is re-visited?
-  recompute = False;
-  p_thresh  = None;
+  recompute  = False;
+  p_thresh   = None;
+  tests_done = 0
 
   #############################################################################
 
-  def __init__(self, T, p_thresh):
+  def __init__(self, T, p_thresh, tests_done=0):
     self.T        = T;
     self.p_thresh = p_thresh
     self.prepare_data();
+    self.tests_done = tests_done
   #edef
 
   #############################################################################
@@ -82,11 +84,19 @@ class DTCUT_test:
 
   #############################################################################
 
-  def correct(self, pval, factor):
+  def correct(self, pval):
     """
     A wrapper function for pvalue correction, incase we want to do something more fancy
     """
-    return pval * factor;
+    return pval * self.tests_done;
+  #edef
+
+  #############################################################################
+
+  def __test__(self, i_node, **kwargs):
+    pval = self.test(i_node, **kwargs);
+    self.tests_done = self.tests_done + (1 - int(self.T.get_tree_node_visited(i_node)));
+    return pval;
   #edef
 
   #############################################################################
@@ -98,23 +108,23 @@ class DTCUT_test:
 
   #############################################################################
 
-  def is_significant(self, pval, factor):
+  def is_significant(self, pval):
     """
     A wrapper to test if a pvalue with a given correction factor is significant or not
     """
-    return (self.correct(pval, factor) < self.p_thresh)
+    return (self.correct(pval) < self.p_thresh)
   #edef
 
   #############################################################################
 
-  def descend_rule(self, i_node, p_thresh, factor, min_set_size, max_set_size):
+  def descend_to(self, i_node, min_set_size, max_set_size):
     
     children       = [ self.T.get_tree_node_left_child_id(i_node), self.T.get_tree_node_right_child_id(i_node) ];
     valid_children = [ child for child in children if ( (child is not None) and (len(self.T.get_tree_node_leaves(child)) >= min_set_size) ) ]
     p_value        = self.T.get_tree_node_p_value(i_node);
     n_leaves       = len(self.T.get_tree_node_leaves(i_node))
 
-    node_is_significant = self.is_significant(p_value, factor);
+    node_is_significant = self.is_significant(p_value);
 
     if n_leaves > max_set_size:
       print "parent too big, return children"
@@ -127,7 +137,7 @@ class DTCUT_test:
     #fi
     
     more_significant_children = [];
-    for child_id in children:
+    for child_id in valid_children:
       if (child_id is not None) and (self.T.get_tree_node_p_value(child_id) < p_value) and ( len(self.T.get_tree_node_leaves(child_id)) >= min_set_size):
         more_significant_children.append(child_id);
       #fi
@@ -205,16 +215,6 @@ class DTCUT:
 
   ###############################################################################
 
-  def correct(self, pval, factor):
-    """
-    A wrapper function for pvalue correction, incase we want to do something more fancy
-    """
-
-    return pval * factor;
-  #edef
-
-  ###############################################################################
-
   def test_tree(self, stat, min_set_size=1, max_set_size=sys.maxint):
     """
     Loop through the tree and test each node in a BFS manner.
@@ -237,27 +237,29 @@ class DTCUT:
     self.min_set_size = min_set_size;
     self.max_set_size = max_set_size;
 
-    correction_factor = 0;
-    testing           = [ -1 ];
+    tests_done      = 0
+    tests_done_prev = 0
+    testing         = [ -1 ];
 
     while True:
+        # before we start, lets reinitialize these, so that nothing is significant yet, and
+        # so that we know how many tests we have done up until now
       significant = [];
-      last_correction_factor = correction_factor;
+      tests_done_prev = self.stat.tests_done;
       for i_node in testing:
           # Find significant nodes for a particular branch
-        S, tests_done = self.traverse_node(i_node, correction_factor);
+        S = self.traverse_node(i_node);
           # And keep track of them
         significant.extend(S);
-          # And also the number of tests that were done additionally.
-        correction_factor = correction_factor + tests_done;
       #efor
 
         # If we haven't done any more tests since last time, we can quit.
-      if correction_factor == last_correction_factor:
+      if self.stat.tests_done == tests_done_prev:
         break;
       #fi
+
+        # OK, let's try the nodes we found last time again!
       testing = significant;
-      last_correction_factor = correction_factor;
     #ewhile
 
     return significant;
@@ -265,7 +267,7 @@ class DTCUT:
 
   ###############################################################################
 
-  def traverse_node(self, root, correction_factor):
+  def traverse_node(self, root):
     """
     Do a BFS for a given branch.
 
@@ -286,33 +288,28 @@ class DTCUT:
       # Found significant nodes
     S = [];
 
-    tests_done = correction_factor;
-
     while len(Q) > 0:
 
         # Traverse the queue
       i_node = Q.pop(0);
 
-      visited = self.visit_node(i_node, tests_done);
-      tests_done = tests_done + visited;
+      visited = self.visit_node(i_node);
 
-
-        # 
-      next_tests = self.stat.descend_rule(i_node, self.stat.p_thresh, tests_done, self.min_set_size, self.max_set_size);
+      next_tests = self.stat.descend_to(i_node, self.min_set_size, self.max_set_size);
       if next_tests is None:
         S.append(i_node);
-        print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), tests_done);
+        print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), self.stat.tests_done);
       else:
         Q.extend(next_tests);
       #fi
     #ewhile
 
-    return S, (tests_done - correction_factor);
+    return S
   #edef
 
   ###############################################################################
 
-  def visit_node(self, i_node, tests_done):
+  def visit_node(self, i_node):
     """
     Visit a given node.
     This means, check its p-value, and the p-value of its children.
@@ -322,7 +319,6 @@ class DTCUT:
     """
 
     more_significant_children = False;
-    nodes_visited = 0;
 
     child_left_id, child_right_id, node_height, node_leaves, node_pvalue, node_visited = self.get_tree_node(i_node);
 
@@ -330,16 +326,15 @@ class DTCUT:
     if len(node_leaves) < self.min_set_size or len(node_leaves) > self.max_set_size:
       self.set_tree_node_visited(i_node, False);
       self.set_tree_node_p_value(i_node, 1.0);
-      return 0;
+      return;
     #fi
 
       # Get the p-value of the node
     if node_visited == False or self.stat.recompute:
-      node_pvalue = self.stat.test(i_node, factor=tests_done);
+      node_pvalue = self.stat.__test__(i_node);
 
       self.set_tree_node_visited(i_node, True);
       self.set_tree_node_p_value(i_node, node_pvalue);
-      nodes_visited = nodes_visited + (1 - int(node_visited));
     #fi
 
       # Get p-value of the LEFT and RIGHT child node
@@ -347,10 +342,9 @@ class DTCUT:
     for child_id in child_nodes:
       if child_id != None:
         if self.get_tree_node_p_value(child_id) == None:
-          child_node_pvalue = self.stat.test(child_id, factor=tests_done+nodes_visited);
+          child_node_pvalue = self.stat.__test__(child_id);
           self.set_tree_node_visited(child_id, True);
           self.set_tree_node_p_value(child_id, child_node_pvalue);
-          nodes_visited = nodes_visited + 1;
         #fi
       #fi
     #efor
@@ -358,8 +352,7 @@ class DTCUT:
     print "===\np-value of parent (%d) = %f\np-value of left (%d) = %f\np-value of right (%d) = %f\n\n" % (i_node,         self.get_tree_node_p_value(i_node), 
                                                                                                            child_left_id,  self.get_tree_node_p_value(child_left_id),
                                                                                                            child_right_id, self.get_tree_node_p_value(child_right_id))
-
-    return nodes_visited;
+    return;
   #edef
 
   #############################################################################
