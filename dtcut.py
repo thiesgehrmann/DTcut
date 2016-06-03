@@ -114,14 +114,14 @@ class DTCUT_test:
     p_value        = self.T.get_tree_node_p_value(i_node);
     n_leaves       = len(self.T.get_tree_node_leaves(i_node))
 
-    is_significant = self.stat.is_significant(p_value, factor);
+    node_is_significant = self.is_significant(p_value, factor);
 
     if n_leaves > max_set_size:
       print "parent too big, return children"
       return valid_children;
     #fi
 
-    if self.correct(p_value, factor) > p_thresh:
+    if not(node_is_significant):
       print "Parent not sig. return children"
       return valid_children;
     #fi
@@ -133,7 +133,7 @@ class DTCUT_test:
       #fi
     #edef
     
-    if not(more_significant_children) and self.stat.is_significantself.correct(p_value, factor) < p_thresh:
+    if not(more_significant_children) and node_is_significant:
       print "Parent is significant, and there are no more sig children"
       return None;
     else:
@@ -141,7 +141,6 @@ class DTCUT_test:
       return valid_children;
     #fi
   #edef
-
 
 #eclass
 
