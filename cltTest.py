@@ -47,7 +47,7 @@ class Test(DTCUT_test):
 
     p_value = np.sum(new_perms > self.score(i_node)) / float(nperms_to_sig)
 
-    self.permutations[i_node] = (nperms_to_sig, sorted(new_perms, descend=True)[:int(self.p_thresh));
+    self.permutations[i_node] = (nperms_to_sig, sorted(new_perms, descend=True)[0:int(self.p_thresh*nperms_to_sig)]);
 
     return p_value
 
