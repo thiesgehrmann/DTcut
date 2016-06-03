@@ -62,15 +62,17 @@ class DTCUT_test:
 
     # Should we re-run the statistical test when the node is re-visited?
   recompute = False;
+  p_thresh  = None;
 
   #############################################################################
 
-  def __init__(self, T):
-    self.T = T;
-    print "Init"
+  def __init__(self, T, p_thresh):
+    self.T        = T;
+    self.p_thresh = p_thresh
     self.prepare_data();
-    print "Should have done prepare_data already"
   #edef
+
+  #############################################################################
 
   def prepare_data(self):
     # Make this function format the labels or data into whatever you need.
@@ -84,14 +86,23 @@ class DTCUT_test:
     """
     A wrapper function for pvalue correction, incase we want to do something more fancy
     """
-    
     return pval * factor;
+  #edef
 
   #############################################################################
 
-  def test(self, i_node):
+  def test(self, i_node, **kwargs):
     print "You must define a test function in your statistical test class";
     return 1.0;
+  #edef
+
+  #############################################################################
+
+  def is_significant(self, pval, factor):
+    """
+    A wrapper to test if a pvalue with a given correction factor is significant or not
+    """
+    return (self.correct(pval, factor) < self.p_thresh)
   #edef
 
   #############################################################################
@@ -102,6 +113,8 @@ class DTCUT_test:
     valid_children = [ child for child in children if ( (child is not None) and (len(self.T.get_tree_node_leaves(child)) >= min_set_size) ) ]
     p_value        = self.T.get_tree_node_p_value(i_node);
     n_leaves       = len(self.T.get_tree_node_leaves(i_node))
+
+    is_significant = self.stat.is_significant(p_value, factor);
 
     if n_leaves > max_set_size:
       print "parent too big, return children"
@@ -120,7 +133,7 @@ class DTCUT_test:
       #fi
     #edef
     
-    if not(more_significant_children) and self.correct(p_value, factor) < p_thresh:
+    if not(more_significant_children) and self.stat.is_significantself.correct(p_value, factor) < p_thresh:
       print "Parent is significant, and there are no more sig children"
       return None;
     else:
@@ -141,7 +154,6 @@ class DTCUT:
   IDS          = None;
   L            = None;
   stat         = None;
-  p_thresh     = None;
   min_set_size = None;
   max_set_size = None;
 
@@ -204,7 +216,7 @@ class DTCUT:
 
   ###############################################################################
 
-  def test_tree(self, stat, p_thresh, min_set_size, max_set_size=sys.maxint):
+  def test_tree(self, stat, min_set_size=1, max_set_size=sys.maxint):
     """
     Loop through the tree and test each node in a BFS manner.
 
@@ -218,13 +230,11 @@ class DTCUT:
 
     Input:
      * stat:         The statistical test class
-     * p_thresh:     The p-value threshold
      * min_set_size: The smallest size a cluster may be
      * max_set_size: The largest size a cluster may be
     """
 
     self.stat         = stat;
-    self.p_thresh     = p_thresh;
     self.min_set_size = min_set_size;
     self.max_set_size = max_set_size;
 
@@ -284,12 +294,12 @@ class DTCUT:
         # Traverse the queue
       i_node = Q.pop(0);
 
-      visited = self.visit_node(i_node);
+      visited = self.visit_node(i_node, tests_done);
       tests_done = tests_done + visited;
 
 
         # 
-      next_tests = self.stat.descend_rule(i_node, self.p_thresh, tests_done, self.min_set_size, self.max_set_size);
+      next_tests = self.stat.descend_rule(i_node, self.stat.p_thresh, tests_done, self.min_set_size, self.max_set_size);
       if next_tests is None:
         S.append(i_node);
         print "SIGNIFICANT: Node %d, pvalue %.10f, correction factor %d" % (i_node, self.get_tree_node_p_value(i_node), tests_done);
@@ -303,7 +313,7 @@ class DTCUT:
 
   ###############################################################################
 
-  def visit_node(self, i_node):
+  def visit_node(self, i_node, tests_done):
     """
     Visit a given node.
     This means, check its p-value, and the p-value of its children.
@@ -326,7 +336,7 @@ class DTCUT:
 
       # Get the p-value of the node
     if node_visited == False or self.stat.recompute:
-      node_pvalue = self.stat.test(i_node);
+      node_pvalue = self.stat.test(i_node, factor=tests_done);
 
       self.set_tree_node_visited(i_node, True);
       self.set_tree_node_p_value(i_node, node_pvalue);
@@ -338,14 +348,11 @@ class DTCUT:
     for child_id in child_nodes:
       if child_id != None:
         if self.get_tree_node_p_value(child_id) == None:
-          child_node_pvalue = self.stat.test(child_id);
+          child_node_pvalue = self.stat.test(child_id, factor=tests_done+nodes_visited);
           self.set_tree_node_visited(child_id, True);
           self.set_tree_node_p_value(child_id, child_node_pvalue);
           nodes_visited = nodes_visited + 1;
         #fi
-        #if node_pvalue > child_node_pvalue and len(child_node_leaves) >= self.min_set_size:
-        #  more_significant_children = True;
-        ##fi
       #fi
     #efor
 

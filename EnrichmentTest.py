@@ -3,7 +3,7 @@ from dtcut import DTCUT_test;
 
 class Test(DTCUT_test):
 
-  def test(self, i_node):
+  def test(self, i_node, **kwargs):
     """
     Do a simple enrichment using the Chi^2 test.
     """

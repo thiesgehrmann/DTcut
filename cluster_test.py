@@ -109,11 +109,11 @@ if __name__ == '__main__':
     print "TESTING label set: %s" % labels_files[i];
 
       # Initialize the statistical test
-    stat_test = TEST.Test(current_tree);
+    stat_test = TEST.Test(current_tree, pvalue_thresh);
     stat_func = lambda i_node: stat_test.test(i_node);
 
       # Test the tree, getting significant nodes
-    S = current_tree.test_tree(stat_test, pvalue_thresh, min_set_size, max_set_size);
+    S = current_tree.test_tree(stat_test, min_set_size, max_set_size);
 
       # Get information about these significant nodes
     clusters = current_tree.get_clusters(S);
