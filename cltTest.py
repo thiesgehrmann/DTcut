@@ -38,6 +38,8 @@ class Test(DTCUT_test):
 
     # Check how many we have already done
     if self.permutations[i_node] == None:
+      nperms, perms = (0, np.array([]));
+    else:
       nperms, perms = self.permutations[i_node];
     #fi
 
